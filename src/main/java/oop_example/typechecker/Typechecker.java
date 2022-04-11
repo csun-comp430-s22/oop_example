@@ -22,12 +22,13 @@ public class Typechecker {
     // 4. Is this given class a subclass of another class?
     // 5. Does our class hierarchy form a tree?
 
-    
     public final List<ClassDef> classes;
-
+    public final Program program;
+    
     // recommended: ClassName -> All Methods on the Class
     // recommended: ClassName -> ParentClass
     public Typechecker(final Program program) {
+        this.program = program;
         this.classes = program.classes;
         // TODO: check that class hierarchy is a tree
     }
@@ -89,7 +90,31 @@ public class Typechecker {
         // return type for this
         return null;
     }
-    
+
+    // Doesn't handle access modifiers right now; would be to know which class we
+    // are calling from.
+    //
+    // class Base extends Object {
+    //   public void basePublic() {}
+    //   protected void baseProtected() {}
+    //   private void basePrivate() {}
+    // }
+    // class Sub extends Base {
+    //   public void foobar() {
+    //     this.basePublic();  // should be ok
+    //     this.baseProtected(); // should be ok
+    //     this.basePrivate(); // should give an error
+    //   }
+    // }
+    // class SomeOtherClass extends Object {
+    //   public void test() {
+    //     Sub sub = new Sub();
+    //     sub.basePublic(); // should be ok
+    //     sub.baseProtected(); // should give an error
+    //     sub.basePrivate(); // should give an error
+    //   }
+    // }
+    //
     // doesn't handle inherited methods
     // for every class:
     //   - Methods on that class
@@ -208,9 +233,9 @@ public class Typechecker {
         }
     }
 
-    public Map<Variable, Type> addToMap(final Map<Variable, Type> map,
-                                        final Variable variable,
-                                        final Type type) {
+    public static Map<Variable, Type> addToMap(final Map<Variable, Type> map,
+                                               final Variable variable,
+                                               final Type type) {
         final Map<Variable, Type> result = new HashMap<Variable, Type>();
         result.putAll(map);
         result.put(variable, type);
@@ -230,8 +255,8 @@ public class Typechecker {
                                              final ClassName classWeAreIn,
                                              final Type functionReturnType) throws TypeErrorException {
         if (typeof(stmt.guard, typeEnvironment, classWeAreIn) instanceof BoolType) {
-            isWellTyped(stmt.ifTrue, typeEnvironment, classWeAreIn, functionReturnType);
-            isWellTyped(stmt.ifFalse, typeEnvironment, classWeAreIn, functionReturnType);
+            isWellTypedStmt(stmt.ifTrue, typeEnvironment, classWeAreIn, functionReturnType);
+            isWellTypedStmt(stmt.ifFalse, typeEnvironment, classWeAreIn, functionReturnType);
             return typeEnvironment;
         } else {
             throw new TypeErrorException("guard of if is not a boolean: " + stmt);
@@ -243,7 +268,7 @@ public class Typechecker {
                                                 final ClassName classWeAreIn,
                                                 final Type functionReturnType) throws TypeErrorException {
         if (typeof(stmt.guard, typeEnvironment, classWeAreIn) instanceof BoolType) {
-            isWellTyped(stmt.body, typeEnvironment, classWeAreIn, functionReturnType);
+            isWellTypedStmt(stmt.body, typeEnvironment, classWeAreIn, functionReturnType);
             return typeEnvironment;
         } else {
             throw new TypeErrorException("guard on while is not a boolean: " + stmt);
@@ -255,7 +280,7 @@ public class Typechecker {
                                                 final ClassName classWeAreIn,
                                                 final Type functionReturnType) throws TypeErrorException {
         for (final Stmt bodyStmt : stmt.body) {
-            typeEnvironment = isWellTyped(bodyStmt, typeEnvironment, classWeAreIn, functionReturnType);
+            typeEnvironment = isWellTypedStmt(bodyStmt, typeEnvironment, classWeAreIn, functionReturnType);
         }
         return typeEnvironment;
     }
@@ -291,10 +316,10 @@ public class Typechecker {
     //   int x = 17;
     //   break;
     // }
-    public Map<Variable, Type> isWellTyped(final Stmt stmt,
-                                           final Map<Variable, Type> typeEnvironment,
-                                           final ClassName classWeAreIn,
-                                           final Type functionReturnType) throws TypeErrorException {
+    public Map<Variable, Type> isWellTypedStmt(final Stmt stmt,
+                                               final Map<Variable, Type> typeEnvironment,
+                                               final ClassName classWeAreIn,
+                                               final Type functionReturnType) throws TypeErrorException {
         if (stmt instanceof ExpStmt) {
             typeof(((ExpStmt)stmt).exp, typeEnvironment, classWeAreIn, functionReturnType);
             return typeEnvironment;
@@ -316,6 +341,88 @@ public class Typechecker {
         } else {
             throw new TypeErrorException("Unsupported statement: " + stmt);
         }
-    } 
-    //public static void isWellTyped(final Program program) throws TypeErrorException;
+    }
+
+    // methoddef ::= type methodname(vardec*) stmt
+    public void isWellTypedMethodDef(final MethodDef method,
+                                     Map<Variable, Type> typeEnvironment, // instance variables
+                                     final ClassName classWeAreIn) throws TypeErrorException {
+        // starting type environment: just instance variables
+        // int addTwo(int x, int y) { return x + y; }
+        //
+        // int x;
+        // int addTwo(bool x, int x) { return x; }
+        for (final Vardec vardec : method.arguments) {
+            // odd semantics: last variable declaration shadows prior one
+            typeEnvironment = addToMap(typeEnvironment, vardec.variable, vardec.type);
+        }
+        
+        isWellTypedStmt(method.body,
+                        typeEnvironment, // instance variables + parameters
+                        classWeAreIn,
+                        method.returnType);
+    }
+
+    // classdef ::= class classname extends classname {
+    //            vardec*; // comma-separated instance variables
+    //            constructor(vardec*) {
+    //              super(exp*);
+    //              stmt* // comma-separated
+    //            }
+    //            methoddef*
+    //          }
+
+    // -Check constructor
+    // -Check methods
+    public void isWellTypedClassDef(final ClassDef classDef) throws TypeErrorException {
+        // TODO: add instance variables from parent classes; currently broken
+        // weird: duplicate instance variables
+        // class MyClass extends Object {
+        //   int x;
+        //   bool x;
+        //   ...
+        // }
+        Map<Variable, Type> typeEnvironment = new HashMap<Variable, Type>();
+        for (final Vardec vardec : classDef.instanceVariables) {
+            typeEnvironment = addToMap(typeEnvironment, vardec.variable, vardec.type);
+        }
+        
+        // check constructor
+        Map<Variable, Type> constructorTypeEnvironment = typeEnvironment;
+        for (final Vardec vardec : classDef.constructorArguments) {
+            constructorTypeEnvironment = addToMap(constructorTypeEnvironment, vardec.variable, vardec.type);
+        }
+        // check call to super
+        expressionsOk(expectedConstructorTypesForClass(classDef.extendsClassName),
+                      classDef.superParams,
+                      constructorTypeEnvironment,
+                      classDef.className);
+        isWellTypedBlock(new BlockStmt(classDef.constructorBody),
+                         constructorTypeEnvironment,
+                         classDef.className,
+                         new VoidType());
+
+        // check methods
+        // TODO - this is broken - doesn't check for methods with duplicate names
+        //
+        // int foo(int x) { ... }
+        // int foo(bool b) { ... }
+        for (final MethodDef method : classDef.methods) {
+            isWellTypedMethodDef(method,
+                                 typeEnvironment,
+                                 classDef.className);
+        }
+    }
+
+    // program ::= classdef* stmt
+    public void isWellTypedProgram() throws TypeErrorException {
+        for (final ClassDef classDef : program.classes) {
+            isWellTypedClassDef(classDef);
+        }
+
+        isWellTypedStmt(program.entryPoint,
+                        new HashMap<Varible, Type>(),
+                        null,
+                        null);
+    }
 }

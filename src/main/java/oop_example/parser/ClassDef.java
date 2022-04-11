@@ -8,7 +8,7 @@ public class ClassDef {
     public final List<Vardec> instanceVariables;
     public final List<Vardec> constructorArguments;
     public final List<Exp> superParams;
-    public final List<Stmt> superBody;
+    public final List<Stmt> constructorBody;
     public final List<MethodDef> methods;
 
     public ClassDef(final ClassName className,
@@ -16,14 +16,14 @@ public class ClassDef {
                     final List<Vardec> instanceVariables,
                     final List<Vardec> constructorArguments,
                     final List<Exp> superParams,
-                    final List<Stmt> superBody,
+                    final List<Stmt> constructorBody,
                     final List<MethodDef> methods) {
         this.className = className;
         this.extendsClassName = extendsClassName;
         this.instanceVariables = instanceVariables;
         this.constructorArguments = constructorArguments;
         this.superParams = superParams;
-        this.superBody = superBody;
+        this.constructorBody = constructorBody;
         this.methods = methods;
     }
 
@@ -33,7 +33,7 @@ public class ClassDef {
                 instanceVariables.hashCode() +
                 constructorArguments.hashCode() +
                 superParams.hashCode() +
-                superBody.hashCode() +
+                constructorBody.hashCode() +
                 methods.hashCode());
     }
 
@@ -45,7 +45,7 @@ public class ClassDef {
                     instanceVariables.equals(otherClass.instanceVariables) &&
                     constructorArguments.equals(otherClass.constructorArguments) &&
                     superParams.equals(otherClass.superParams) &&
-                    superBody.equals(otherClass.superBody) &&
+                    constructorBody.equals(otherClass.constructorBody) &&
                     methods.equals(otherClass.methods));
         } else {
             return false;
@@ -58,7 +58,7 @@ public class ClassDef {
                 instanceVariables.toString() + ", " +
                 constructorArguments.toString() + ", " +
                 superParams.toString() + ", " +
-                superBody.toString() + ", " +
+                constructorBody.toString() + ", " +
                 methods.toString());
     }
 }
