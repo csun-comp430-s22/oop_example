@@ -1,13 +1,19 @@
 package oop_example.typechecker;
 
+import oop_example.parser.*;
+
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Set;
+import java.util.HashSet;
 
 // typechecks: well-typed: no type errors
 // doesn't typecheck: ill-typed: some number of type errors (>0)
 
 public class Typechecker {
+    public static final String BASE_CLASS_NAME = "Object";
+    
     // Things to track:
     // 1.) Variables in scope, and their types
     // 2.) Classes available, parameters constructors take, methods they have, what their parent
@@ -22,15 +28,70 @@ public class Typechecker {
     // 4. Is this given class a subclass of another class?
     // 5. Does our class hierarchy form a tree?
 
-    public final List<ClassDef> classes;
+    public final Map<ClassName, ClassDef> classes;
     public final Program program;
+
+    // gets the parent class definition for the class with the given name
+    // Throws an exception if the class doesn't exist, or if its parent
+    // doesn't exist.  Returns null if the parent is Object.
+    public static ClassDef getParent(final ClassName className,
+                                     final Map<ClassName, ClassDef> classes) throws TypeErrorException {
+        final ClassDef classDef = classes.get(className);
+        if (classDef == null) {
+            throw new TypeErrorException("no such class: " + className);
+        }
+        final ClassName extendsClassName = classDef.extendsClassName;
+        if (extendsClassName.name.equals(BASE_CLASS_NAME)) {
+            return null;
+        }
+        final ClassDef retval = classes.get(extendsClassName);
+        if (retval == null) {
+            throw new TypeErrorException("no such class: " + className);
+        }
+        return retval;
+    }
+    
+    public static void assertInheritanceNonCyclicalForClass(final ClassDef classDef,
+                                                            final Map<ClassName, ClassDef> classes) throws TypeErrorException {
+        final Set<ClassName> seenClasses = new HashSet<ClassName>();
+        seenClasses.add(classDef.className);
+        ClassDef parentClassDef = getParent(classDef.className, classes);
+        while (parentClassDef != null) {
+            final ClassName parentClassName = parentClassDef.className;
+            if (seenClasses.contains(parentClassName)) {
+                throw new TypeErrorException("cyclic inheritance involving: " + parentClassName);
+            }
+            seenClasses.add(parentClassName);
+            parentClassDef = getParent(parentClassName, classes);
+        }
+    }
+        
+    public static void assertInheritanceNonCyclical(final Map<ClassName, ClassDef> classes) throws TypeErrorException {
+        for (final ClassDef classDef : classes.values()) {
+            assertInheritanceNonCyclicalForClass(classDef, classes);
+        }
+    }
+    
+    // also makes sure inheritance hierarchies aren't cyclical
+    public static Map<ClassName, ClassDef> makeClassMap(final List<ClassDef> classes) throws TypeErrorException {
+        final Map<ClassName, ClassDef> retval = new HashMap<ClassName, ClassDef>();
+        for (final ClassDef classDef : classes) {
+            final ClassName className = classDef.className;
+            if (retval.containsKey(classDef.className)) {
+                throw new TypeErrorException("Duplicate class name: " + className);
+            }
+        }
+
+        assertInheritanceNonCyclical(retval);
+
+        return retval;
+    }
     
     // recommended: ClassName -> All Methods on the Class
     // recommended: ClassName -> ParentClass
-    public Typechecker(final Program program) {
+    public Typechecker(final Program program) throws TypeErrorException {
         this.program = program;
-        this.classes = program.classes;
-        // TODO: check that class hierarchy is a tree
+        classes = makeClassMap(program.classes);
     }
 
     public Type typeofVariable(final VariableExp exp,
