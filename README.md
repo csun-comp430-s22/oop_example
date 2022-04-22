@@ -152,7 +152,7 @@ let vtable_SubClass = [SubClass_firstMethod,
 
 {
   let b = makeObject(vtable_BaseClass, BaseClass_constructor, 1);
-  let sub = makeObject(vtabl_SubClass, SubClass_constructor, 2, 3);
+  let sub = makeObject(vtable_SubClass, SubClass_constructor, 2, 3);
   console.log(b.vtable[0](b, 4));
   console.log(b.vtable[1](b, 5));
   console.log(sub.vtable[0](sub, 6));
