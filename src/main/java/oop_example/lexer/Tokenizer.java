@@ -37,6 +37,7 @@ public class Tokenizer {
         SYMBOLS.add(new Symbol("=", new AssignToken()));
         SYMBOLS.add(new Symbol("(", new LeftParenToken()));
         SYMBOLS.add(new Symbol(")", new RightParenToken()));
+        SYMBOLS.add(new Symbol(",", new CommaToken()));
         SYMBOLS.add(new Symbol(".", new DotToken()));
         SYMBOLS.add(new Symbol(";", new SemicolonToken()));
         SYMBOLS.add(new Symbol("{", new LeftCurlyToken()));

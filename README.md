@@ -60,10 +60,48 @@ stmt ::= exp; |
          { stmt* }
 methoddef ::= type methodname(vardec*) stmt
 classdef ::= class classname extends classname {
-               vardec*; // comma-separated instance variables
+               vardec*; // semicolon-separated instance variables
                constructor(vardec*) {
                  super(exp*);
                  stmt* // comma-separated
+               }
+               methoddef*
+             }
+program ::= classdef* stmt // stmt is the entry point
+```
+
+Refactored grammar to account for precedence with no left recursion:
+
+```
+x is a variable
+i is an integer
+classname is a class name
+methodname is a method name
+type ::= int | bool | void | classname
+primary_exp ::= i | x | true | false | this | `(` exp `)` | new classname `(` comma_exp `)`
+dot_exp ::= primary_exp (`.` methodname `(` comma_exp `)`)*
+additive_exp ::= dot_exp (`+` dot_exp)*
+less_than_exp ::= additive_exp (`<` additive_exp)*
+equals_exp ::= less_than_exp (`==` less_than_exp)*
+comma_exp ::= [exp (`,` exp)*]
+exp ::= equals_exp
+vardec ::= type x
+stmt ::= exp; |
+         vardec = exp; |
+         if (exp) stmt else stmt |
+         while (exp) stmt |
+         return exp; |
+         return; |
+         println(exp); |
+         { stmt* }
+vardecs_comma ::= [vardec (`,` vardec)*]
+vardecs_semicolon ::= (vardec `;`)*
+methoddef ::= type methodname(vardecs_comma) stmt
+classdef ::= class classname extends classname {
+               vardecs_semicolon
+               constructor(vardecs_comma) {
+                 super(comma_exp);
+                 stmt*
                }
                methoddef*
              }
