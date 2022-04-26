@@ -7,7 +7,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Iterator;
 
-import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.io.IOException;
 
 import oop_example.typechecker.Typechecker;
 import oop_example.typechecker.TypeErrorException;
@@ -24,14 +25,14 @@ public class CodeGenerator {
         "}\n";
 
     public final Program program;
-    public final PrintStream output;
+    public final PrintWriter output;
     
     public final Map<ClassName, ClassDef> classes;
     public final Map<ClassName, Map<MethodName, MethodDef>> methods;
     public final Map<ClassName, VTable> vtables;
 
     public CodeGenerator(final Program program,
-                         final PrintStream output) throws TypeErrorException {
+                         final PrintWriter output) throws TypeErrorException {
         this.program = program;
         this.output = output;
         classes = Typechecker.makeClassMap(program.classes);
@@ -78,12 +79,12 @@ public class CodeGenerator {
         return vtable;
     }
     
-    public void writeIntLiteralExp(final IntLiteralExp exp) {
+    public void writeIntLiteralExp(final IntLiteralExp exp) throws IOException {
         output.print(exp.value);
     }
 
     public void writeVariableExp(final VariableExp exp,
-                                 final Set<Variable> localVariables) {
+                                 final Set<Variable> localVariables) throws IOException {
         // local variables work as-is
         // the only non-local variables are instance variables, which
         // must always be accessed through self
@@ -95,11 +96,11 @@ public class CodeGenerator {
         output.print(variable.name);
     }
 
-    public void writeBoolLiteralExp(final BoolLiteralExp exp) {
+    public void writeBoolLiteralExp(final BoolLiteralExp exp) throws IOException {
         output.print(exp.value);
     }
 
-    public void writeOp(final Op op) throws CodeGeneratorException {
+    public void writeOp(final Op op) throws CodeGeneratorException, IOException {
         if (op instanceof PlusOp) {
             output.print("+");
         } else if (op instanceof LessThanOp) {
@@ -112,7 +113,8 @@ public class CodeGenerator {
     }
     
     public void writeOpExp(final OpExp exp,
-                           final Set<Variable> localVariables) throws CodeGeneratorException {
+                           final Set<Variable> localVariables)
+        throws CodeGeneratorException, IOException  {
         output.print("(");
         writeExp(exp.left, localVariables);
         output.print(" ");
@@ -124,7 +126,8 @@ public class CodeGenerator {
 
     // comma-separated
     public void writeExps(final List<Exp> exps,
-                          final Set<Variable> localVariables) throws CodeGeneratorException {
+                          final Set<Variable> localVariables)
+        throws CodeGeneratorException, IOException {
         final int numExps = exps.size();
         // intentionally using an iterator for access, because it could
         // be a linked list
@@ -139,7 +142,8 @@ public class CodeGenerator {
     }
     
     public void writeMethodCallExp(final MethodCallExp exp,
-                                   final Set<Variable> localVariables) throws CodeGeneratorException {
+                                   final Set<Variable> localVariables)
+        throws CodeGeneratorException, IOException {
         assert(exp.targetType != null);
         final VTable vtable = getVTable(exp.targetType.className);
         writeExp(exp.target, localVariables);
@@ -151,7 +155,8 @@ public class CodeGenerator {
     }
 
     public void writeNewExp(final NewExp newExp,
-                            final Set<Variable> localVariables) throws CodeGeneratorException {
+                            final Set<Variable> localVariables)
+        throws CodeGeneratorException, IOException {
         final VTable vtable = getVTable(newExp.className);
         output.print("makeObject(");
         output.print(vtable.targetVariable().name);
@@ -165,7 +170,8 @@ public class CodeGenerator {
     }
         
     public void writeExp(final Exp exp,
-                         final Set<Variable> localVariables) throws CodeGeneratorException {
+                         final Set<Variable> localVariables)
+        throws CodeGeneratorException, IOException {
         if (exp instanceof IntLiteralExp) {
             writeIntLiteralExp((IntLiteralExp)exp);
         } else if (exp instanceof VariableExp) {
@@ -194,14 +200,16 @@ public class CodeGenerator {
     }
 
     public Set<Variable> writeExpStmt(final ExpStmt stmt,
-                                      final Set<Variable> localVariables) throws CodeGeneratorException {
+                                      final Set<Variable> localVariables)
+        throws CodeGeneratorException, IOException {
         writeExp(stmt.exp, localVariables);
         output.println(";");
         return localVariables;
     }
 
     public Set<Variable> writeVariableInitializationStmt(final VariableInitializationStmt stmt,
-                                                         final Set<Variable> localVariables) throws CodeGeneratorException {
+                                                         final Set<Variable> localVariables)
+        throws CodeGeneratorException, IOException {
         final Variable variable = stmt.vardec.variable;
         output.print("let ");
         output.print(variable.name);
@@ -215,7 +223,8 @@ public class CodeGenerator {
     // with the same name.  However, this language allows it.  In order to resolve this,
     // each statement is executed in an ever deeper scope.
     public void writeStmtsInNestedScopes(final Iterator<Stmt> stmts,
-                                         Set<Variable> localVariables) throws CodeGeneratorException {
+                                         Set<Variable> localVariables)
+        throws CodeGeneratorException, IOException {
         if (stmts.hasNext()) {
             localVariables = writeStmt(stmts.next(), localVariables);
             output.print("{");
@@ -225,7 +234,8 @@ public class CodeGenerator {
     }
 
     public Set<Variable> writeIfStmt(final IfStmt stmt,
-                                     final Set<Variable> localVariables) throws CodeGeneratorException {
+                                     final Set<Variable> localVariables)
+        throws CodeGeneratorException, IOException {
         output.print("if (");
         writeExp(stmt.guard, localVariables);
         output.print(") {");
@@ -237,7 +247,8 @@ public class CodeGenerator {
     }
 
     public Set<Variable> writeWhileStmt(final WhileStmt stmt,
-                                        final Set<Variable> localVariables) throws CodeGeneratorException {
+                                        final Set<Variable> localVariables)
+        throws CodeGeneratorException, IOException {
         output.print("while (");
         writeExp(stmt.guard, localVariables);
         output.print(") {");
@@ -247,7 +258,8 @@ public class CodeGenerator {
     }
 
     public Set<Variable> writeReturnNonVoidStmt(final ReturnNonVoidStmt stmt,
-                                                final Set<Variable> localVariables) throws CodeGeneratorException {
+                                                final Set<Variable> localVariables)
+        throws CodeGeneratorException, IOException {
         output.print("return ");
         writeExp(stmt.exp, localVariables);
         output.println(";");
@@ -255,13 +267,14 @@ public class CodeGenerator {
     }
 
     public Set<Variable> writeReturnVoidStmt(final ReturnVoidStmt stmt,
-                                             final Set<Variable> localVariables) {
+                                             final Set<Variable> localVariables) throws IOException {
         output.println("return;");
         return localVariables;
     }
 
     public Set<Variable> writePrintlnStmt(final PrintlnStmt stmt,
-                                          final Set<Variable> localVariables) throws CodeGeneratorException {
+                                          final Set<Variable> localVariables)
+        throws CodeGeneratorException, IOException {
         output.print("console.log(");
         writeExp(stmt.exp, localVariables);
         output.println(");");
@@ -269,7 +282,8 @@ public class CodeGenerator {
     }
     
     public Set<Variable> writeBlockStmt(final BlockStmt stmt,
-                                        final Set<Variable> localVariables) throws CodeGeneratorException {
+                                        final Set<Variable> localVariables)
+        throws CodeGeneratorException, IOException {
         output.print("{");
         writeStmtsInNestedScopes(stmt.body.iterator(), localVariables);
         output.print("}");
@@ -278,7 +292,8 @@ public class CodeGenerator {
 
     // returns new set of variables in scope
     public Set<Variable> writeStmt(final Stmt stmt,
-                                   final Set<Variable> localVariables) throws CodeGeneratorException {
+                                   final Set<Variable> localVariables)
+        throws CodeGeneratorException, IOException {
         if (stmt instanceof ExpStmt) {
             return writeExpStmt((ExpStmt)stmt, localVariables);
         } else if (stmt instanceof VariableInitializationStmt) {
@@ -301,7 +316,7 @@ public class CodeGenerator {
     }
 
     // writes a comma-separated list
-    public void writeFormalParams(final List<Vardec> vardecs) {
+    public void writeFormalParams(final List<Vardec> vardecs) throws IOException {
         final int numParams = vardecs.size();
         final Iterator<Vardec> iterator = vardecs.iterator();
         for (int index = 1; iterator.hasNext() && index < numParams; index++) {
@@ -322,7 +337,8 @@ public class CodeGenerator {
     }
     
     public void writeMethod(final ClassName forClass,
-                            final MethodDef methodDef) throws CodeGeneratorException {
+                            final MethodDef methodDef)
+        throws CodeGeneratorException, IOException {
         output.print("function ");
         output.print(nameMangleFunctionName(forClass, methodDef.methodName).name);
         output.print("(");
@@ -333,7 +349,8 @@ public class CodeGenerator {
         output.println("}");
     }
 
-    public void writeConstructor(final ClassDef classDef) throws CodeGeneratorException {
+    public void writeConstructor(final ClassDef classDef)
+        throws CodeGeneratorException, IOException {
         // header
         output.print("function ");
         output.print(nameMangleConstructorName(classDef.className));
@@ -363,18 +380,20 @@ public class CodeGenerator {
                                  localVariables);
     }
     
-    public void writeClass(final ClassDef classDef) throws CodeGeneratorException {
+    public void writeClass(final ClassDef classDef)
+        throws CodeGeneratorException, IOException {
         writeConstructor(classDef);
         for (final MethodDef methodDef : classDef.methods) {
             writeMethod(classDef.className, methodDef);
         }
     }
 
-    public void writeMakeObject() {
+    public void writeMakeObject() throws IOException {
         output.println(MAKE_OBJECT_HELPER);
     }
 
-    public void generateCode() throws CodeGeneratorException {
+    public void generateCode()
+        throws CodeGeneratorException, IOException {
         // makeObject helper
         writeMakeObject();
         
@@ -390,5 +409,13 @@ public class CodeGenerator {
 
         // write out entry point
         writeStmt(program.entryPoint, new HashSet<Variable>());
+    }
+
+    public static void generateCode(final Program program,
+                                    final PrintWriter output)
+        throws TypeErrorException,
+               CodeGeneratorException,
+               IOException {
+        new CodeGenerator(program, output).generateCode();
     }
 }

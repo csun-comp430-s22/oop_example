@@ -11,11 +11,10 @@ public class TokenizerTest {
     public static void assertTokenizes(final String input,
                                        final Token[] expected)
         throws TokenizerException {
-        final Tokenizer tokenizer = new Tokenizer(input);
         if (expected == null) {
-            List<Token> tokens = null;
+            Token[] tokens = null;
             try {
-                tokens = tokenizer.tokenize();
+                tokens = Tokenizer.tokenize(input);
             } catch (final TokenizerException e) {
             }
 
@@ -24,9 +23,8 @@ public class TokenizerTest {
                      tokens.toString());
             }
         } else {
-            final List<Token> tokens = tokenizer.tokenize();
-            assertArrayEquals(expected,
-                              tokens.toArray(new Token[tokens.size()]));
+            final Token[] tokens = Tokenizer.tokenize(input);
+            assertArrayEquals(expected, tokens);
         }
     }
 

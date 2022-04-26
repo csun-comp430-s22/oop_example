@@ -484,4 +484,8 @@ public class Parser {
             throw new ParseErrorException("remaining tokens at end");
         }
     }
+
+    public static Program parse(final Token[] tokens) throws ParseErrorException {
+        return new Parser(tokens).parseProgram();
+    }
 }

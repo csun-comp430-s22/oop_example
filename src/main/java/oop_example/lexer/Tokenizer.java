@@ -151,4 +151,9 @@ public class Tokenizer {
 
         return retval;
     }
+
+    public static Token[] tokenize(final String input) throws TokenizerException {
+        final List<Token> tokens = new Tokenizer(input).tokenize();
+        return tokens.toArray(new Token[tokens.size()]);
+    }
 }

@@ -3,7 +3,8 @@ package oop_example.code_generator;
 import oop_example.parser.MethodName;
 import oop_example.parser.ClassName;
 
-import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.io.IOException;
 
 import java.util.Map;
 import java.util.HashMap;
@@ -63,7 +64,7 @@ public class VTable {
         return new TargetVariable("vtable_" + className.name);
     }
     
-    public void writeTable(final PrintStream output) {
+    public void writeTable(final PrintWriter output) throws IOException {
         output.print("let ");
         output.print(targetVariable().name);
         output.print(" = [");
