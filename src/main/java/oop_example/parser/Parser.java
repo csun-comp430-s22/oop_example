@@ -78,7 +78,7 @@ public class Parser {
             type = new ClassNameType(className.result);
         }
 
-        return new ParseResult<Type>(type, position + 1);
+        return new ParseResult<Type>(type, position);
     }
 
     // primary_exp ::= i | x | true | false | this | `(` exp `)` | new classname `(` comma_exp `)`
@@ -108,7 +108,8 @@ public class Parser {
             assertTokenHereIs(position++, new RightParenToken());
             exp = new NewExp(className.result, params.result);
         } else {
-            throw new ParseErrorException("Expected primary expression; received: " + token);
+            throw new ParseErrorException("Expected primary expression; received: " + token +
+                                          " at position: " + position);
         }
 
         return new ParseResult<Exp>(exp, position);
