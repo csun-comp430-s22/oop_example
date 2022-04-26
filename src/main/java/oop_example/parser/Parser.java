@@ -187,7 +187,7 @@ public class Parser {
 
         while (shouldRun) {
             try {
-                assertTokenHereIs(retval.position, new LessThanToken());
+                assertTokenHereIs(retval.position, new EqualsToken());
                 final ParseResult<Exp> right = parseLessThanExp(retval.position + 1);
                 retval = new ParseResult<Exp>(new OpExp(retval.result,
                                                         new EqualsOp(),
