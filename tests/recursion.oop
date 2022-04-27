@@ -1,0 +1,47 @@
+class IntList extends Object {
+  constructor() { super(); }
+  int length() { return 42; }
+  int sum() { return 42; }
+  IntList addAmount(int amount) { return new IntNil(); }
+}
+
+class IntNil extends IntList {
+  constructor() { super(); }
+  int length() { return 0; }
+  int sum() { return 0; }
+  IntList addAmount(int amount) { return this; }
+}
+
+class IntCons extends IntList {
+  int head;
+  IntList tail;
+
+  constructor(int headParam, IntList tailParam) {
+    super();
+    head = headParam;
+    tail = tailParam;
+  }
+
+  int length() {
+    return 1 + tail.length();
+  }
+
+  int sum() {
+    return head + tail.sum();
+  }
+
+  IntList addAmount(int amount) {
+    return new IntCons(head + amount, tail.addAmount(amount));
+  }
+}
+
+{
+  IntList list1 = new IntCons(1, new IntCons(2, new IntCons(3, new IntNil())));
+  IntList list2 = list1.addAmount(5);
+
+  println(list1.length());
+  println(list2.length());
+
+  println(list1.sum());
+  println(list2.sum());
+}

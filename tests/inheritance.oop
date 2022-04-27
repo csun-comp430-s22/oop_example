@@ -1,0 +1,39 @@
+class BaseClass extends Object {
+  int x;
+  constructor(int xParam) {
+    super();
+    x = xParam;
+  }
+  int firstMethod(int y) {
+    return x + y;
+  }
+  int secondMethod(int y) {
+    return x + y + 5;
+  }
+}
+
+class SubClass extends BaseClass {
+  int y;
+  constructor(int xParam, int yParam) {
+    super(xParam);
+    y = yParam;
+  }
+  int firstMethod(int z) {
+    return x + y + z;
+  }
+  bool thirdMethod(int z) {
+    return x + y < x + z;
+  }
+}
+
+{
+  BaseClass b = new BaseClass(1);
+  SubClass sub = new SubClass(2, 3);
+
+  println(b.firstMethod(4));
+  println(b.secondMethod(5));
+
+  println(sub.firstMethod(7));
+  println(sub.secondMethod(8));
+  println(sub.thirdMethod(9));
+}
