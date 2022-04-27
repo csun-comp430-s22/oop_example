@@ -315,12 +315,23 @@ public class Parser {
                 return new ParseResult<Stmt>(new VariableInitializationStmt(vardec.result,
                                                                             exp.result),
                                              exp.position + 1);
-            } catch (final ParseErrorException e) {
-                // ...then expression statements if those didn't work
-                final ParseResult<Exp> exp = parseExp(position);
-                assertTokenHereIs(exp.position, new SemicolonToken());
-                return new ParseResult<Stmt>(new ExpStmt(exp.result),
-                                             exp.position + 1);
+            } catch (final ParseErrorException e1) {
+                // ...then expression statements if that didn't work...
+                try {
+                    final ParseResult<Exp> exp = parseExp(position);
+                    assertTokenHereIs(exp.position, new SemicolonToken());
+                    return new ParseResult<Stmt>(new ExpStmt(exp.result),
+                                                 exp.position + 1);
+                } catch (final ParseErrorException e2) {
+                    // ...and finally assignment if that didn't work
+                    final ParseResult<Variable> variable = parseVariable(position);
+                    assertTokenHereIs(variable.position, new AssignToken());
+                    final ParseResult<Exp> exp = parseExp(variable.position + 1);
+                    assertTokenHereIs(exp.position, new SemicolonToken());
+                    return new ParseResult<Stmt>(new AssignStmt(variable.result,
+                                                                exp.result),
+                                                 exp.position + 1);
+                }
             }
         }
     }

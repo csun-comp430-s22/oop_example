@@ -128,6 +128,7 @@ public class Typechecker {
             if (retval.containsKey(classDef.className)) {
                 throw new TypeErrorException("Duplicate class name: " + className);
             }
+            retval.put(className, classDef);
         }
 
         assertInheritanceNonCyclical(retval);
@@ -143,14 +144,19 @@ public class Typechecker {
         methods = makeMethodMap(classes);
     }
 
+    public static Type getVariable(final Map<Variable, Type> typeEnvironment,
+                                   final Variable variable) throws TypeErrorException {
+        final Type retval = typeEnvironment.get(variable);
+        if (retval == null) {
+            throw new TypeErrorException("Varible not in scope: " + variable.name);
+        } else {
+            return retval;
+        }
+    }
+    
     public Type typeofVariable(final VariableExp exp,
                                final Map<Variable, Type> typeEnvironment) throws TypeErrorException {
-        final Type mapType = typeEnvironment.get(exp.variable);
-        if (mapType == null) {
-            throw new TypeErrorException("Used variable not in scope: " + exp.variable.name);
-        } else {
-            return mapType;
-        }
+        return getVariable(typeEnvironment, exp.variable);
     }
 
     public Type typeofThis(final ClassName classWeAreIn) throws TypeErrorException {
@@ -373,6 +379,15 @@ public class Typechecker {
         return addToMap(typeEnvironment, stmt.vardec.variable, stmt.vardec.type);
     }
 
+    public Map<Variable, Type> isWellTypedAssign(final AssignStmt stmt,
+                                                 final Map<Variable, Type> typeEnvironment,
+                                                 final ClassName classWeAreIn) throws TypeErrorException {
+        final Type expType = typeof(stmt.exp, typeEnvironment, classWeAreIn);
+        final Type variableType = getVariable(typeEnvironment, stmt.variable);
+        assertEqualOrSubtypeOf(expType, variableType);
+        return typeEnvironment;
+    }
+    
     public Map<Variable, Type> isWellTypedIf(final IfStmt stmt,
                                              final Map<Variable, Type> typeEnvironment,
                                              final ClassName classWeAreIn,
@@ -448,6 +463,8 @@ public class Typechecker {
             return typeEnvironment;
         } else if (stmt instanceof VariableInitializationStmt) {
             return isWellTypedVar((VariableInitializationStmt)stmt, typeEnvironment, classWeAreIn);
+        } else if (stmt instanceof AssignStmt) {
+            return isWellTypedAssign((AssignStmt)stmt, typeEnvironment, classWeAreIn);
         } else if (stmt instanceof IfStmt) {
             return isWellTypedIf((IfStmt)stmt, typeEnvironment, classWeAreIn, functionReturnType);
         } else if (stmt instanceof WhileStmt) {

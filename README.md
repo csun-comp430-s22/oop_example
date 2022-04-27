@@ -88,6 +88,7 @@ exp ::= equals_exp
 vardec ::= type x
 stmt ::= exp; |
          vardec = exp; |
+         x = exp; |
          if (exp) stmt else stmt |
          while (exp) stmt |
          return exp; |

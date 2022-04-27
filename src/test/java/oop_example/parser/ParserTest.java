@@ -503,4 +503,223 @@ public class ParserTest {
                      new RightCurlyToken()).parseClassDef(0);
         assertEquals(expected, received);
     }
+
+    @Test
+    public void testClassOneConstructorParam() throws ParseErrorException {
+        // class MyClass extends Object {
+        //   constructor(int x) { super(); }
+        // }
+        final ClassDef classDef = new ClassDef(new ClassName("MyClass"),
+                                               new ClassName("Object"),
+                                               new ArrayList<Vardec>(),
+                                               Arrays.asList(new Vardec(new IntType(), new Variable("x"))),
+                                               mkParams(),
+                                               new ArrayList<Stmt>(),
+                                               new ArrayList<MethodDef>());
+        final ParseResult<ClassDef> expected =
+            new ParseResult<ClassDef>(classDef, 17);
+        final ParseResult<ClassDef> received =
+            mkParser(new ClassToken(),
+                     new IdentifierToken("MyClass"),
+                     new ExtendsToken(),
+                     new IdentifierToken("Object"),
+                     new LeftCurlyToken(),
+                     new ConstructorToken(),
+                     new LeftParenToken(),
+                     new IntToken(),
+                     new IdentifierToken("x"),
+                     new RightParenToken(),
+                     new LeftCurlyToken(),
+                     new SuperToken(),
+                     new LeftParenToken(),
+                     new RightParenToken(),
+                     new SemicolonToken(),
+                     new RightCurlyToken(),
+                     new RightCurlyToken()).parseClassDef(0);
+        assertEquals(expected, received);
+    }
+
+    @Test
+    public void testClassTwoConstructorParams() throws ParseErrorException {
+        // class MyClass extends Object {
+        //   constructor(int x, bool y) { super(); }
+        // }
+        final ClassDef classDef = new ClassDef(new ClassName("MyClass"),
+                                               new ClassName("Object"),
+                                               new ArrayList<Vardec>(),
+                                               Arrays.asList(new Vardec(new IntType(), new Variable("x")),
+                                                             new Vardec(new BoolType(), new Variable("y"))),
+                                               mkParams(),
+                                               new ArrayList<Stmt>(),
+                                               new ArrayList<MethodDef>());
+        final ParseResult<ClassDef> expected =
+            new ParseResult<ClassDef>(classDef, 20);
+        final ParseResult<ClassDef> received =
+            mkParser(new ClassToken(),
+                     new IdentifierToken("MyClass"),
+                     new ExtendsToken(),
+                     new IdentifierToken("Object"),
+                     new LeftCurlyToken(),
+                     new ConstructorToken(),
+                     new LeftParenToken(),
+                     new IntToken(),
+                     new IdentifierToken("x"),
+                     new CommaToken(),
+                     new BoolToken(),
+                     new IdentifierToken("y"),
+                     new RightParenToken(),
+                     new LeftCurlyToken(),
+                     new SuperToken(),
+                     new LeftParenToken(),
+                     new RightParenToken(),
+                     new SemicolonToken(),
+                     new RightCurlyToken(),
+                     new RightCurlyToken()).parseClassDef(0);
+        assertEquals(expected, received);
+    }
+
+    @Test
+    public void testClassSingleMethod() throws ParseErrorException {
+        // class MyClass extends Object {
+        //   constructor() { super(); }
+        //   int myMethod() { return 0; }
+        // }
+        final List<MethodDef> methods =
+            Arrays.asList(new MethodDef(new IntType(),
+                                        new MethodName("myMethod"),
+                                        new ArrayList<Vardec>(),
+                                        new BlockStmt(Arrays.asList(new ReturnNonVoidStmt(new IntLiteralExp(0))))));
+        final ClassDef classDef = new ClassDef(new ClassName("MyClass"),
+                                               new ClassName("Object"),
+                                               new ArrayList<Vardec>(),
+                                               new ArrayList<Vardec>(),
+                                               mkParams(),
+                                               new ArrayList<Stmt>(),
+                                               methods);
+        final ParseResult<ClassDef> expected =
+            new ParseResult<ClassDef>(classDef, 24);
+        final ParseResult<ClassDef> received =
+            mkParser(new ClassToken(),
+                     new IdentifierToken("MyClass"),
+                     new ExtendsToken(),
+                     new IdentifierToken("Object"),
+                     new LeftCurlyToken(),
+                     new ConstructorToken(),
+                     new LeftParenToken(),
+                     new RightParenToken(),
+                     new LeftCurlyToken(),
+                     new SuperToken(),
+                     new LeftParenToken(),
+                     new RightParenToken(),
+                     new SemicolonToken(),
+                     new RightCurlyToken(),
+                     new IntToken(),
+                     new IdentifierToken("myMethod"),
+                     new LeftParenToken(),
+                     new RightParenToken(),
+                     new LeftCurlyToken(),
+                     new ReturnToken(),
+                     new IntegerToken(0),
+                     new SemicolonToken(),
+                     new RightCurlyToken(),
+                     new RightCurlyToken()).parseClassDef(0);
+        assertEquals(expected, received);
+    }
+
+    @Test
+    public void testClassSingleMethodWithParam() throws ParseErrorException {
+        // class MyClass extends Object {
+        //   constructor() { super(); }
+        //   int myMethod(int x) { return x; }
+        // }
+        final List<MethodDef> methods =
+            Arrays.asList(new MethodDef(new IntType(),
+                                        new MethodName("myMethod"),
+                                        Arrays.asList(new Vardec(new IntType(), new Variable("x"))),
+                                        new BlockStmt(Arrays.asList(new ReturnNonVoidStmt(new VariableExp(new Variable("x")))))));
+        final ClassDef classDef = new ClassDef(new ClassName("MyClass"),
+                                               new ClassName("Object"),
+                                               new ArrayList<Vardec>(),
+                                               new ArrayList<Vardec>(),
+                                               mkParams(),
+                                               new ArrayList<Stmt>(),
+                                               methods);
+        final ParseResult<ClassDef> expected =
+            new ParseResult<ClassDef>(classDef, 26);
+        final ParseResult<ClassDef> received =
+            mkParser(new ClassToken(),
+                     new IdentifierToken("MyClass"),
+                     new ExtendsToken(),
+                     new IdentifierToken("Object"),
+                     new LeftCurlyToken(),
+                     new ConstructorToken(),
+                     new LeftParenToken(),
+                     new RightParenToken(),
+                     new LeftCurlyToken(),
+                     new SuperToken(),
+                     new LeftParenToken(),
+                     new RightParenToken(),
+                     new SemicolonToken(),
+                     new RightCurlyToken(),
+                     new IntToken(),
+                     new IdentifierToken("myMethod"),
+                     new LeftParenToken(),
+                     new IntToken(),
+                     new IdentifierToken("x"),
+                     new RightParenToken(),
+                     new LeftCurlyToken(),
+                     new ReturnToken(),
+                     new IdentifierToken("x"),
+                     new SemicolonToken(),
+                     new RightCurlyToken(),
+                     new RightCurlyToken()).parseClassDef(0);
+        assertEquals(expected, received);
+    }
+
+    @Test
+    public void testClassNonEmptyConstructor() throws ParseErrorException {
+        // class MyClass extends Object {
+        //   int x;
+        //   constructor(int xParam) {
+        //     super();
+        //     x = xParam;
+        //   }
+        // }
+        final ClassDef classDef = new ClassDef(new ClassName("MyClass"),
+                                               new ClassName("Object"),
+                                               Arrays.asList(new Vardec(new IntType(), new Variable("x"))),
+                                               Arrays.asList(new Vardec(new IntType(), new Variable("xParam"))),
+                                               mkParams(),
+                                               Arrays.asList(new AssignStmt(new Variable("x"),
+                                                                            new VariableExp(new Variable("xParam")))),
+                                               new ArrayList<MethodDef>());
+        final ParseResult<ClassDef> expected =
+            new ParseResult<ClassDef>(classDef, 24);
+        final ParseResult<ClassDef> received =
+            mkParser(new ClassToken(),
+                     new IdentifierToken("MyClass"),
+                     new ExtendsToken(),
+                     new IdentifierToken("Object"),
+                     new LeftCurlyToken(),
+                     new IntToken(),
+                     new IdentifierToken("x"),
+                     new SemicolonToken(),
+                     new ConstructorToken(),
+                     new LeftParenToken(),
+                     new IntToken(),
+                     new IdentifierToken("xParam"),
+                     new RightParenToken(),
+                     new LeftCurlyToken(),
+                     new SuperToken(),
+                     new LeftParenToken(),
+                     new RightParenToken(),
+                     new SemicolonToken(),
+                     new IdentifierToken("x"),
+                     new AssignToken(),
+                     new IdentifierToken("xParam"),
+                     new SemicolonToken(),
+                     new RightCurlyToken(),
+                     new RightCurlyToken()).parseClassDef(0);
+        assertEquals(expected, received);
+    }            
 }
