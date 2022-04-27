@@ -18,12 +18,21 @@ public class CodeGenerator {
     public static final String SELF_NAME = "self";
     public static final String MAKE_OBJECT_HELPER =
         "function makeObject(vtable, constructor, ...params) {\n" +
-        "let self = {};\n" +
-        "self.vtable = vtable;\n" +
-        "constructor.apply(self, params);\n" +
-        "return self;\n" +
+        "  let self = {};\n" +
+        "  self.vtable = vtable;\n" +
+        "  params.unshift(self);\n" +
+        "  constructor.apply(this, params);\n" +
+        "  return self;\n" +
         "}\n";
-
+    public static final String DO_CALL_HELPER =
+        "function doCall(self, index, ...params) {\n" +
+        "  params.unshift(self);\n" +
+        "  return self.vtable[index].apply(this, params);\n" +
+        "}\n";
+    
+    public static final String OBJECT_CONSTRUCTOR =
+        "function Object_constructor(self) {}\n";
+    
     public final Program program;
     public final PrintWriter output;
     
@@ -83,17 +92,21 @@ public class CodeGenerator {
         output.print(exp.value);
     }
 
-    public void writeVariableExp(final VariableExp exp,
-                                 final Set<Variable> localVariables) throws IOException {
+    public void writeVariable(final Variable variable,
+                              final Set<Variable> localVariables) throws IOException {
         // local variables work as-is
         // the only non-local variables are instance variables, which
         // must always be accessed through self
-        final Variable variable = exp.variable;
-        if (localVariables.contains(variable)) {
+        if (!localVariables.contains(variable)) {
             output.print(SELF_NAME);
             output.print(".");
         }
         output.print(variable.name);
+    }
+    
+    public void writeVariableExp(final VariableExp exp,
+                                 final Set<Variable> localVariables) throws IOException {
+        writeVariable(exp.variable, localVariables);
     }
 
     public void writeBoolLiteralExp(final BoolLiteralExp exp) throws IOException {
@@ -146,11 +159,14 @@ public class CodeGenerator {
         throws CodeGeneratorException, IOException {
         assert(exp.targetType != null);
         final VTable vtable = getVTable(exp.targetType.className);
+        output.print("doCall(");
         writeExp(exp.target, localVariables);
-        output.print(".vtable[");
+        output.print(", ");
         output.print(vtable.indexOfMethod(exp.methodName));
-        output.print("](");
-        writeExps(exp.params, localVariables);
+        if (!exp.params.isEmpty()) {
+            output.print(", ");
+            writeExps(exp.params, localVariables);
+        }
         output.print(")");
     }
 
@@ -246,6 +262,16 @@ public class CodeGenerator {
         return localVariables;
     }
 
+    public Set<Variable> writeAssignStmt(final AssignStmt stmt,
+                                         final Set<Variable> localVariables)
+        throws CodeGeneratorException, IOException {
+        writeVariable(stmt.variable, localVariables);
+        output.print(" = ");
+        writeExp(stmt.exp, localVariables);
+        output.println(";");
+        return localVariables;
+    }
+    
     public Set<Variable> writeWhileStmt(final WhileStmt stmt,
                                         final Set<Variable> localVariables)
         throws CodeGeneratorException, IOException {
@@ -298,6 +324,8 @@ public class CodeGenerator {
             return writeExpStmt((ExpStmt)stmt, localVariables);
         } else if (stmt instanceof VariableInitializationStmt) {
             return writeVariableInitializationStmt((VariableInitializationStmt)stmt, localVariables);
+        } else if (stmt instanceof AssignStmt) {
+            return writeAssignStmt((AssignStmt)stmt, localVariables);
         } else if (stmt instanceof IfStmt) {
             return writeIfStmt((IfStmt)stmt, localVariables);
         } else if (stmt instanceof WhileStmt) {
@@ -341,8 +369,11 @@ public class CodeGenerator {
         throws CodeGeneratorException, IOException {
         output.print("function ");
         output.print(nameMangleFunctionName(forClass, methodDef.methodName).name);
-        output.print("(");
-        writeFormalParams(methodDef.arguments);
+        output.print("(self");
+        if (!methodDef.arguments.isEmpty()) {
+            output.print(", ");
+            writeFormalParams(methodDef.arguments);
+        }
         output.println(") {");
         writeStmt(methodDef.body,
                   initialLocalVariables(methodDef.arguments));
@@ -353,7 +384,7 @@ public class CodeGenerator {
         throws CodeGeneratorException, IOException {
         // header
         output.print("function ");
-        output.print(nameMangleConstructorName(classDef.className));
+        output.print(nameMangleConstructorName(classDef.className).name);
         output.print("(");
         output.print(SELF_NAME);
         if (!classDef.constructorArguments.isEmpty()) {
@@ -365,7 +396,7 @@ public class CodeGenerator {
         // call to super
         final Set<Variable> localVariables =
             initialLocalVariables(classDef.constructorArguments);
-        output.print(nameMangleConstructorName(classDef.extendsClassName));
+        output.print(nameMangleConstructorName(classDef.extendsClassName).name);
         output.print("(");
         output.print(SELF_NAME);
         if (!classDef.superParams.isEmpty()) {
@@ -378,6 +409,7 @@ public class CodeGenerator {
         // body
         writeStmtsInNestedScopes(classDef.constructorBody.iterator(),
                                  localVariables);
+        output.println("}");
     }
     
     public void writeClass(final ClassDef classDef)
@@ -388,14 +420,15 @@ public class CodeGenerator {
         }
     }
 
-    public void writeMakeObject() throws IOException {
+    public void writeRuntimeCode() throws IOException {
         output.println(MAKE_OBJECT_HELPER);
+        output.println(DO_CALL_HELPER);
+        output.println(OBJECT_CONSTRUCTOR);
     }
 
     public void generateCode()
         throws CodeGeneratorException, IOException {
-        // makeObject helper
-        writeMakeObject();
+        writeRuntimeCode();
         
         // write out vtables
         for (final VTable vtable : vtables.values()) {
