@@ -199,3 +199,9 @@ let vtable_SubClass = [SubClass_firstMethod,
   console.log(sub.vtable[2](sub, 8));
 }
 ```
+
+# Running the Compiler
+
+```
+mvn exec:java -Dexec.mainClass="oop_example.Compiler" -Dexec.args="tests/recursion.oop output.js"
+```
