@@ -27,12 +27,16 @@ public class Compiler {
     public static String fileContentsAsString(final String inputFilename) throws IOException {
         final StringBuilder builder = new StringBuilder();
         final BufferedReader reader = new BufferedReader(new FileReader(inputFilename));
-        String line = null;
-        while ((line = reader.readLine()) != null) {
-            builder.append(line);
-            builder.append("\n");
+        try {
+            String line = null;
+            while ((line = reader.readLine()) != null) {
+                builder.append(line);
+                builder.append("\n");
+            }
+            return builder.toString();
+        } finally {
+            reader.close();
         }
-        return builder.toString();
     }
     
     public static void compile(final String inputFilename,
